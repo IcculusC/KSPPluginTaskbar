@@ -6,68 +6,22 @@ using UnityEngine;
 
 namespace PluginTaskbar
 {
-    public class TaskBarHook
-    {
-        private GUI.WindowFunction[] m_Function;
-        private int[] m_WindowID;
-        private Rect[] m_WindowPos;
-        private GUIContent[] m_Content;
-        private bool m_Minimized = true;
-
-        public TaskBarIcon Icon;
-
-        public int[] WindowIDs
-        {
-            get
-            {
-                return m_WindowID;
-            }
-            set
-            {
-                m_WindowID = value;
-            }
-        }
-
-        public bool Minimized
-        {
-            get
-            {
-                return m_Minimized;
-            }
-            set
-            {
-                m_Minimized = value;
-            }
-        }
-
-        public TaskBarHook(int[] id, Rect[] startPos, GUIContent[] content, TaskBarIcon icon, GUI.WindowFunction[] function)
-        {
-            m_Function = function;
-            m_WindowID = id;
-            m_WindowPos = startPos;
-            m_Content = content;
-            m_Minimized = false;
-            Icon = icon;
-        }
-
-        public void Draw()
-        {
-            for (int i = 0; i < m_WindowID.Length; i++)
-            {
-                m_WindowPos[i] = GUILayout.Window(m_WindowID[i], m_WindowPos[i], m_Function[i], m_Content[i]);
-            }
-            return;
-        }
-
-    }
-
     public class TaskBarDelegate
     {
         private Callback m_Function;
+        private Callback<Callback<Texture2D>, bool> m_Icon;
         
-        public TaskBarIcon Icon;
+        public Texture2D Icon;
 
         private bool m_Minimized = true;
+
+        public Callback Delegate
+        {
+            get
+            {
+                return m_Function;
+            }
+        }
 
         public bool Minimized
         {
@@ -81,10 +35,16 @@ namespace PluginTaskbar
             }
         }
 
-        public TaskBarDelegate(Callback function, TaskBarIcon icon)
-        {
+        public TaskBarDelegate(Callback function, Callback<Callback<Texture2D>, bool> taskBarIcon)//TaskBarIcon icon, Callback<Callback<Texture2D>> taskBarIcon)
+        {   
             m_Function = function;
-            Icon = icon;
+            m_Icon = taskBarIcon;
+            m_Icon.Invoke(new Callback<Texture2D>(updateIcon), m_Minimized);
+        }
+
+        private void updateIcon(Texture2D texture)
+        {
+            Icon = texture;
         }
 
         public void Draw()

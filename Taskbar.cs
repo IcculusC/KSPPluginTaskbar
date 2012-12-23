@@ -6,6 +6,8 @@ using UnityEngine;
 
 namespace PluginTaskbar
 {
+    // I WOULDN'T WORRY ABOUT HOW IT WORKS, JUST BE HAPPY THAT IT DOES.
+
     class TaskbarModule : PartModule 
     {
         public override void OnAwake()
@@ -16,43 +18,20 @@ namespace PluginTaskbar
         
     public class TaskBar : MonoBehaviour
     {
-        private List<TaskBarHook> m_Modules = new List<TaskBarHook>();
         private List<TaskBarDelegate> m_Delegates = new List<TaskBarDelegate>();
         private Rect windowPos;
         private Vector2 scrollPos = new Vector2(0, 0);
+        private bool showGUI = true;
 
-        public void Start()
+        public void Update()
         {
-            windowPos = new Rect(Screen.width - 300, 0, 200, 40);
-        }
-
-        public void window(int id)
-        {
-            GUILayout.BeginHorizontal();
-
-            RectOffset temp = GUI.skin.window.margin;
-
-            GUI.skin.window.margin.top = GUI.skin.window.margin.bottom;
-            
-            if(m_Modules.Count > 0)
-            {
-                for (int i = 0; i < m_Modules.Count; i++)
-                {
-                    TaskBarHook hook = m_Modules[i];
-
-                    if(GUILayout.Button(hook.Minimized ? hook.Icon.IconOn : hook.Icon.IconOff, GUILayout.MinWidth(30.0f), GUILayout.MinHeight(30.0f), GUILayout.MaxWidth(30.0f), GUILayout.MaxHeight(30.0f)))
-                        hook.Minimized = !hook.Minimized;  
-                }
-            }
-
-            GUI.skin.window.margin = temp;
-
-            GUILayout.EndHorizontal();
+            if (Input.GetKeyUp("f2"))
+                showGUI = !showGUI;
         }
 
         public void OnGUI()
         {
-            if (!HighLogic.LoadedSceneIsFlight || !FlightGlobals.ready)
+            if (!HighLogic.LoadedSceneIsFlight || !FlightGlobals.ready || !showGUI)
                 return;
 
             GUI.skin = AssetBase.GetGUISkin("KSP window 2");
@@ -60,72 +39,47 @@ namespace PluginTaskbar
             GUI.skin.label.normal.textColor = Color.white;
             GUI.skin.label.padding = GUI.skin.button.padding;
 
-            //windowPos = GUILayout.Window(30038, windowPos, window, GUIContent.none, GUILayout.MinWidth(200.0f), GUILayout.MaxWidth(200.0f), GUILayout.MinWidth(40.0f));
-            GUILayout.BeginArea(new Rect(200, 0, 200, 60));
-
-            GUILayout.BeginHorizontal();
-
-            if (m_Modules.Count > 0)
-            {
-                //scrollPos = GUILayout.BeginScrollView(scrollPos, false, false);
-
-                for (int i = 0; i < m_Modules.Count; i++)
-                {
-                    TaskBarHook hook = m_Modules[i];
-
-                    if (GUILayout.Button(hook.Minimized ? hook.Icon.IconOn : hook.Icon.IconOff, GUILayout.MinWidth(30.0f), GUILayout.MinHeight(30.0f), GUILayout.MaxWidth(30.0f), GUILayout.MaxHeight(30.0f)))
-                        hook.Minimized = !hook.Minimized;
-                }
-
-                //GUILayout.EndScrollView();
-                
-            }
-
+            
             if (m_Delegates.Count > 0)
             {
+                GUILayout.BeginArea(new Rect(200, 0, 200, 60));
+                
+                GUILayout.BeginHorizontal();
+
+                scrollPos = GUILayout.BeginScrollView(scrollPos, false, false);
+
                 for (int i = 0; i < m_Delegates.Count; i++)
                 {
                     TaskBarDelegate hook = m_Delegates[i];
 
-                    if (GUILayout.Button(hook.Minimized ? hook.Icon.IconOn : hook.Icon.IconOff, GUILayout.MinWidth(30.0f), GUILayout.MinHeight(30.0f), GUILayout.MaxWidth(30.0f), GUILayout.MaxHeight(30.0f)))
+                    if (GUILayout.Button(hook.Icon, GUILayout.MinWidth(30.0f), GUILayout.MinHeight(30.0f), GUILayout.MaxWidth(30.0f), GUILayout.MaxHeight(30.0f)))
                         hook.Minimized = !hook.Minimized;
                 }
-            }
 
-            GUILayout.EndHorizontal();
 
-            GUILayout.EndArea();
-            foreach (TaskBarHook hook in m_Modules)
-            {
-                if (!hook.Minimized)
-                    hook.Draw();
-            }
+                GUILayout.EndScrollView();
 
-            foreach (TaskBarDelegate hook in m_Delegates)
-            {
-                if (!hook.Minimized)
-                    hook.Draw();
+                GUILayout.EndHorizontal();
+
+                GUILayout.EndArea();
+
+                foreach (TaskBarDelegate hook in m_Delegates)
+                {
+                    if (!hook.Minimized)
+                        hook.Draw();
+                }
             }
         }
 
-        public void Hook(int[] id, Rect[] startPos, GUIContent[] content, Texture2D iconOn, Texture2D iconOff, GUI.WindowFunction[] function)
+        public void Hook(Callback function, Callback<Callback<Texture2D>, bool> callback)
         {
-            TaskBarHook temp = new TaskBarHook(id, startPos, content, new TaskBarIcon(iconOn, iconOff), function);
+            TaskBarDelegate temp = new TaskBarDelegate(function, callback);
 
             HookModule(temp);
 
             return;
         }
-
-        public void Hook(Callback function, Texture2D iconOn, Texture2D iconOff)
-        {
-            TaskBarDelegate temp = new TaskBarDelegate(function, new TaskBarIcon(iconOn, iconOff));
-
-            HookModule(temp);
-
-            return;
-        }
-
+        
         public void HookModule(TaskBarDelegate hook)
         {
             if (!m_Delegates.Contains(hook))
@@ -133,14 +87,14 @@ namespace PluginTaskbar
                 m_Delegates.Add(hook);
             }
         }
-        public void HookModule(TaskBarHook hook)
-        {
-            if (!m_Modules.Contains(hook))
-            {
-                m_Modules.Add(hook);
-            }
 
-            return;
+        public void Unhook(Callback callback)
+        {
+            for (int i = 0; i < m_Delegates.Count; i++)
+            {
+                if (m_Delegates[i].Delegate.Equals(callback))
+                    m_Delegates.RemoveAt(i);
+            }
         }
     }
 }

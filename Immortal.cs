@@ -6,6 +6,8 @@ using UnityEngine;
 
 namespace PluginTaskbar
 {
+    // PERSISTENT GAME OBJECT CODE, DON'T WORRY ABOUT HOW IT WORKS
+
     public static class Immortal
     {
        private static GameObject _gameObject;
