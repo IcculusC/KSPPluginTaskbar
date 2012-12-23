@@ -61,14 +61,13 @@ namespace PluginTaskbar
             GUI.skin.label.padding = GUI.skin.button.padding;
 
             //windowPos = GUILayout.Window(30038, windowPos, window, GUIContent.none, GUILayout.MinWidth(200.0f), GUILayout.MaxWidth(200.0f), GUILayout.MinWidth(40.0f));
+            GUILayout.BeginArea(new Rect(200, 0, 200, 60));
+
+            GUILayout.BeginHorizontal();
 
             if (m_Modules.Count > 0)
             {
-                GUILayout.BeginArea(new Rect(200, 0, 200, 60));
-
-                GUILayout.BeginHorizontal();
-
-                scrollPos = GUILayout.BeginScrollView(scrollPos, false, false);
+                //scrollPos = GUILayout.BeginScrollView(scrollPos, false, false);
 
                 for (int i = 0; i < m_Modules.Count; i++)
                 {
@@ -78,13 +77,24 @@ namespace PluginTaskbar
                         hook.Minimized = !hook.Minimized;
                 }
 
-                GUILayout.EndScrollView();
-
-                GUILayout.EndHorizontal();  
+                //GUILayout.EndScrollView();
+                
             }
 
-            GUILayout.EndArea();
+            if (m_Delegates.Count > 0)
+            {
+                for (int i = 0; i < m_Delegates.Count; i++)
+                {
+                    TaskBarDelegate hook = m_Delegates[i];
 
+                    if (GUILayout.Button(hook.Minimized ? hook.Icon.IconOn : hook.Icon.IconOff, GUILayout.MinWidth(30.0f), GUILayout.MinHeight(30.0f), GUILayout.MaxWidth(30.0f), GUILayout.MaxHeight(30.0f)))
+                        hook.Minimized = !hook.Minimized;
+                }
+            }
+
+            GUILayout.EndHorizontal();
+
+            GUILayout.EndArea();
             foreach (TaskBarHook hook in m_Modules)
             {
                 if (!hook.Minimized)

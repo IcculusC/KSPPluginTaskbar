@@ -64,7 +64,8 @@ namespace PluginTaskbar
     public class TaskBarDelegate
     {
         private Callback m_Function;
-        private TaskBarIcon m_Icon;
+        
+        public TaskBarIcon Icon;
 
         private bool m_Minimized = true;
 
@@ -83,7 +84,7 @@ namespace PluginTaskbar
         public TaskBarDelegate(Callback function, TaskBarIcon icon)
         {
             m_Function = function;
-            m_Icon = icon;
+            Icon = icon;
         }
 
         public void Draw()
