@@ -42,6 +42,11 @@ namespace PluginTaskbar
             m_Icon.Invoke(new Callback<Texture2D>(updateIcon), m_Minimized);
         }
 
+        public void UpdateIcon()
+        {
+            m_Icon.Invoke(new Callback<Texture2D>(updateIcon), m_Minimized);
+        }
+
         private void updateIcon(Texture2D texture)
         {
             Icon = texture;

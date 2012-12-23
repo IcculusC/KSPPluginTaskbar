@@ -52,6 +52,8 @@ namespace PluginTaskbar
                 {
                     TaskBarDelegate hook = m_Delegates[i];
 
+                    hook.UpdateIcon();
+
                     if (GUILayout.Button(hook.Icon, GUILayout.MinWidth(30.0f), GUILayout.MinHeight(30.0f), GUILayout.MaxWidth(30.0f), GUILayout.MaxHeight(30.0f)))
                         hook.Minimized = !hook.Minimized;
                 }
