@@ -1,4 +1,24 @@
-﻿using System;
+﻿/*
+    KSP Plugin Taskbar
+  
+    Copyright (C) 2012  Leath Cooper
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+*/
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -16,7 +36,7 @@ namespace PluginTaskbar
 
         public interface ITaskbarModule
         {
-            Texture ToolbarIcon();
+            Texture TaskbarIcon();
             void Clicked(bool leftClick);
             string TooltipText();
         }
@@ -26,7 +46,7 @@ namespace PluginTaskbar
             private ITaskbarModule m_Module;
             private Callback<Callback<Texture>, bool> m_IconUpdate;
             private Callback<bool> m_Clicked = null;
-            private static string m_ModuleName = "";
+            private string m_ModuleName;
 
             public static bool Hooked
             {
@@ -35,6 +55,7 @@ namespace PluginTaskbar
 
             public TaskbarHooker(ITaskbarModule module, string moduleName)
             {
+                Debug.Log(String.Format("CREATING HOOK FOR MODULE: {0}", moduleName));
                 m_Module = module;
                 m_ModuleName = moduleName;
                 m_IconUpdate = new Callback<Callback<Texture>, bool>(updateIcon);
@@ -45,17 +66,19 @@ namespace PluginTaskbar
             private void updateIcon(Callback<Texture> callback, bool clicked)
             {
                 //return your icon
-                callback.Invoke(m_Module.ToolbarIcon());
+                callback.Invoke(m_Module.TaskbarIcon());
             }
 
             public bool Start()
             {
+                Debug.Log(String.Format("STARTING MODULE: {0}", m_ModuleName));
                 PluginTaskbar.UnhookFromTaskbar(m_ModuleName);
                 return PluginTaskbar.HookToTaskbar(m_Clicked, m_IconUpdate, m_ModuleName);
             }
 
             public bool Stop()
             {
+                Debug.Log(String.Format("STOPPING MODULE: {0}", m_ModuleName));
                 return PluginTaskbar.UnhookFromTaskbar(m_ModuleName);
             }
         }

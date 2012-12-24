@@ -154,7 +154,7 @@ namespace PluginTaskbar
         {
             TaskBarDelegate temp = new TaskBarDelegate(function, callback, moduleName);
 
-            if (HookModule(temp))
+            if (HookModule(temp, moduleName))
             {
                 return true;
             }
@@ -164,22 +164,22 @@ namespace PluginTaskbar
             }
         }
         
-        public bool HookModule(TaskBarDelegate hook)
+        public bool HookModule(TaskBarDelegate hook, string moduleName)
         {
             if (m_Delegates == null)
                 m_Delegates = new Dictionary<string, TaskBarDelegate>();
 
             foreach (KeyValuePair<string, TaskBarDelegate> kvp in m_Delegates)
             {
-                if (kvp.Key.Equals(hook.moduleName))
+                if (kvp.Key.Equals(moduleName))
                 {
-                    Debug.Log("HOOKMODULE FALSE moduleName already in Dictionary");
+                    Debug.Log(String.Format("HOOKMODULE FALSE moduleName already in Dictionary: {0}", moduleName));
                     return false;
                 }
             }
 
             showGUI = true;
-            m_Delegates.Add(hook.moduleName, hook);
+            m_Delegates.Add(moduleName, hook);
             Debug.Log("HOOKMODULE TRUE");
             return true;
         }
@@ -210,7 +210,7 @@ namespace PluginTaskbar
                 }
                 else
                 {
-                    Debug.Log("UNHOOK FALSE module not found in Dictionary");
+                    Debug.Log(String.Format("UNHOOK FALSE module not found in Dictionary: {0}", module));
                     return false;
                 }
             }
