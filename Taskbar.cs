@@ -18,85 +18,204 @@ namespace PluginTaskbar
         
     public class TaskBar : MonoBehaviour
     {
-        private List<TaskBarDelegate> m_Delegates = new List<TaskBarDelegate>();
-        private Rect windowPos;
+        private Dictionary<string, TaskBarDelegate> m_Delegates = new Dictionary<string, TaskBarDelegate>();
         private Vector2 scrollPos = new Vector2(0, 0);
-        private bool showGUI = true;
+        private bool showGUI = false;
+
+        private float areaWidth = 160.0f;
+        private bool minimized = false;
+
+        private GUIStyle scrollbarStyle = new GUIStyle();
+
+        private Animation currentAnimation = Animation.NONE;
+
+        private Texture2D[] buttonImage = new Texture2D[2] { new Texture2D(20, 40, TextureFormat.ARGB32, true), new Texture2D(20, 40, TextureFormat.ARGB32, true) };
+        private string kspDir = KSPUtil.ApplicationRootPath.Replace("\\", "/");
+
+        private enum Animation
+        {
+            NONE,
+            MINIMIZE,
+            MAXIMIZE
+        }
+
+        public void Awake()
+        {
+            WWW msIconOnImg = new WWW("file://" + kspDir + "Parts/SwingToolbar/maximized.png");
+            msIconOnImg.LoadImageIntoTexture(buttonImage[0]);
+            msIconOnImg = new WWW("file://" + kspDir + "Parts/SwingToolbar/minimized.png");
+            msIconOnImg.LoadImageIntoTexture(buttonImage[1]);
+        }
 
         public void Update()
         {
-            if (Input.GetKeyUp("f2"))
+            if (Input.GetKeyUp("f2") && m_Delegates.Count > 0)
                 showGUI = !showGUI;
+
+            if (currentAnimation == Animation.MAXIMIZE)
+            {
+                scrollbarStyle = GUIStyle.none;
+                areaWidth += 30.0f;
+                if (areaWidth >= 160.0f)
+                {
+                    areaWidth = 160.0f;
+                    currentAnimation = Animation.NONE;
+                }
+            }
+            else if (currentAnimation == Animation.MINIMIZE)
+            {
+                scrollbarStyle = GUIStyle.none;
+                areaWidth -= 30.0f;
+                if (areaWidth <= 0.0f)
+                {
+                    areaWidth = 0.0f;
+                    currentAnimation = Animation.NONE;
+                }
+            }
         }
 
         public void OnGUI()
         {
             if (!HighLogic.LoadedSceneIsFlight || !FlightGlobals.ready || !showGUI)
                 return;
-
-            GUI.skin = AssetBase.GetGUISkin("KSP window 2");
+                        
+            GUI.skin = AssetBase.GetGUISkin("KSP window 5");
 
             GUI.skin.label.normal.textColor = Color.white;
             GUI.skin.label.padding = GUI.skin.button.padding;
 
+            GUIStyle button = new GUIStyle(GUI.skin.button);
+            button.padding = new RectOffset(0, 0, 0, 0);
+
+            GUIStyle win = new GUIStyle();
+            win.normal.background = win.hover.background = win.active.background = GUI.skin.window.normal.background;
+
+            GUILayout.BeginArea(new Rect(180, 0, 20, 40));
+            //minimized ? new GUIContent(buttonImage[1]) : new GUIContent(buttonImage[0])
+                if (GUILayout.Button("", button, GUILayout.Width(20.0f), GUILayout.Height(40.0f), GUILayout.MinWidth(20.0f), GUILayout.MaxWidth(20.0f), GUILayout.MinHeight(40.0f), GUILayout.MaxHeight(40.0f)))
+                {
+                    if (Event.current.button == 0)
+                    {
+                        minimized = !minimized;
+                        if (minimized)
+                            currentAnimation = Animation.MINIMIZE;
+                        else
+                            currentAnimation = Animation.MAXIMIZE;
+                    }
+                }
+                GUILayout.EndArea();
+
+            GUILayout.BeginArea(new Rect(200, 0, areaWidth, 40), win);
             
             if (m_Delegates.Count > 0)
             {
-                GUILayout.BeginArea(new Rect(200, 0, 200, 60));
+                GUI.skin.scrollView.margin = new RectOffset(0, 0, 0, 0);
+                GUI.skin.scrollView.padding = new RectOffset(0, 0, 0, 0);
+
+                if (currentAnimation == Animation.NONE)
+                    scrollbarStyle = GUI.skin.horizontalScrollbar;
+                else
+                    scrollbarStyle = GUIStyle.none;
                 
+                scrollPos = GUILayout.BeginScrollView(scrollPos, false, false, scrollbarStyle, GUIStyle.none);
+
                 GUILayout.BeginHorizontal();
 
-                scrollPos = GUILayout.BeginScrollView(scrollPos, false, false);
-
-                for (int i = 0; i < m_Delegates.Count; i++)
+                foreach (KeyValuePair<string, TaskBarDelegate> kvp in m_Delegates)
                 {
-                    TaskBarDelegate hook = m_Delegates[i];
+                    kvp.Value.UpdateIcon();
 
-                    hook.UpdateIcon();
-
-                    if (GUILayout.Button(hook.Icon, GUILayout.MinWidth(30.0f), GUILayout.MinHeight(30.0f), GUILayout.MaxWidth(30.0f), GUILayout.MaxHeight(30.0f)))
-                        hook.Minimized = !hook.Minimized;
+                    if (GUILayout.Button(kvp.Value.Icon, button, GUILayout.MinWidth(30.0f), GUILayout.MinHeight(30.0f), GUILayout.MaxWidth(30.0f), GUILayout.MaxHeight(30.0f)))
+                    {
+                        if (Event.current.button == 0)
+                        {
+                            kvp.Value.ClickEvent(true);
+                        }
+                        else if (Event.current.button == 1)
+                        {
+                            kvp.Value.ClickEvent(false);
+                        }
+                    }
                 }
-
-
-                GUILayout.EndScrollView();
 
                 GUILayout.EndHorizontal();
+                GUILayout.EndScrollView();
+            }           
 
-                GUILayout.EndArea();
+            GUILayout.EndArea();
 
-                foreach (TaskBarDelegate hook in m_Delegates)
-                {
-                    if (!hook.Minimized)
-                        hook.Draw();
-                }
+            foreach (KeyValuePair<string, TaskBarDelegate> kvp in m_Delegates)
+            {
+
             }
         }
 
-        public void Hook(Callback function, Callback<Callback<Texture2D>, bool> callback)
+        public bool Hook(Callback<bool> function, Callback<Callback<Texture>, bool> callback, string moduleName)
         {
-            TaskBarDelegate temp = new TaskBarDelegate(function, callback);
+            TaskBarDelegate temp = new TaskBarDelegate(function, callback, moduleName);
 
-            HookModule(temp);
-
-            return;
+            if (HookModule(temp))
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
         
-        public void HookModule(TaskBarDelegate hook)
+        public bool HookModule(TaskBarDelegate hook)
         {
-            if (!m_Delegates.Contains(hook))
+            if (m_Delegates == null)
+                m_Delegates = new Dictionary<string, TaskBarDelegate>();
+
+            foreach (KeyValuePair<string, TaskBarDelegate> kvp in m_Delegates)
             {
-                m_Delegates.Add(hook);
+                if (kvp.Key.Equals(hook.moduleName))
+                {
+                    Debug.Log("HOOKMODULE FALSE moduleName already in Dictionary");
+                    return false;
+                }
             }
+
+            showGUI = true;
+            m_Delegates.Add(hook.moduleName, hook);
+            Debug.Log("HOOKMODULE TRUE");
+            return true;
         }
 
-        public void Unhook(Callback callback)
+        public bool Unhook(string module)
         {
-            for (int i = 0; i < m_Delegates.Count; i++)
+            if (m_Delegates == null)
+                m_Delegates = new Dictionary<string, TaskBarDelegate>();
+
+            if(m_Delegates.Count > 0)
             {
-                if (m_Delegates[i].Delegate.Equals(callback))
-                    m_Delegates.RemoveAt(i);
+                //foreach (KeyValuePair<string, TaskBarDelegate> kvp in m_Delegates)
+                //{
+                //    if (kvp.Key.Equals(module))
+                //    {
+                //        m_Delegates.Remove(kvp.Key);
+
+                //        Debug.Log("UNHOOK TRUE");
+                //        return true;
+                //    }
+                //
+                //}
+
+                if(m_Delegates.Remove(module))
+                {
+                    Debug.Log("UNHOOK TRUE");
+                    return true;
+                }
+                else
+                {
+                    Debug.Log("UNHOOK FALSE module not found in Dictionary");
+                    return false;
+                }
             }
+            Debug.Log("UNHOOK FALSE delegate count is 0");
+            return false;
         }
     }
 }

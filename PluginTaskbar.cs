@@ -12,74 +12,67 @@ namespace PluginTaskbar
         // INCLUDE THIS CLASS IN YOUR PROJECT AND FOLLOW THE INSTRUCTIONS
         // REFERENCE EXMAPLES IN THE REGION BELOW
 
-        #region Reference Examples
+        #region TaskbarHooker HELPER CLASS
 
-        // icon delcaration
-
-        Texture2D anIcon = new Texture2D(30, 30, TextureFormat.ARGB32, true);
-        string kspDir = KSPUtil.ApplicationRootPath.Replace("\\", "/");
-        string partPath = "Parts/path_to_your_part/";
-        string iconFile = "an_icon_name.png";
-        Callback windowFunction;
-
-        // example of hooking
-
-        public void FunctionToLoadOn()
+        public interface ITaskbarModule
         {
-            // load the icon from your part directory into a predeclared Texture2D
-            WWW msIconOnImg = new WWW("file://" + kspDir + partPath + iconFile);
-            msIconOnImg.LoadImageIntoTexture(anIcon);
+            Texture ToolbarIcon();
+            void Clicked(bool leftClick);
+            string TooltipText();
+        }
 
-            // define window callback and store for unhooking later
-            windowFunction = new Callback(drawGUI);
+        public class TaskbarHooker
+        {
+            private ITaskbarModule m_Module;
+            private Callback<Callback<Texture>, bool> m_IconUpdate;
+            private Callback<bool> m_Clicked = null;
+            private static string m_ModuleName = "";
 
-            // hook to taskbar if it exists, add your own handling if not
-            if (!PluginTaskbar.HookToTaskbar(windowFunction, new Callback<Callback<Texture2D>, bool>(updateIcon)))
+            public static bool Hooked
             {
-                RenderingManager.AddToPostDrawQueue(131313, windowFunction);
+                get { return PluginTaskbar.isHooked; }
             }
 
-        }
-
-        // example of unhooking
-
-        public void FunctionToUnloadOn()
-        {
-
-            // unhook from taskbar if it exists, add your own handling if not
-            if (!PluginTaskbar.UnhookFromTaskbar(windowFunction))
+            public TaskbarHooker(ITaskbarModule module, string moduleName)
             {
-                RenderingManager.RemoveFromPostDrawQueue(131313, windowFunction);
+                m_Module = module;
+                m_ModuleName = moduleName;
+                m_IconUpdate = new Callback<Callback<Texture>, bool>(updateIcon);
+                if(m_Clicked == null)
+                    m_Clicked = new Callback<bool>(module.Clicked);
             }
 
+            private void updateIcon(Callback<Texture> callback, bool clicked)
+            {
+                //return your icon
+                callback.Invoke(m_Module.ToolbarIcon());
+            }
+
+            public bool Start()
+            {
+                PluginTaskbar.UnhookFromTaskbar(m_ModuleName);
+                return PluginTaskbar.HookToTaskbar(m_Clicked, m_IconUpdate, m_ModuleName);
+            }
+
+            public bool Stop()
+            {
+                return PluginTaskbar.UnhookFromTaskbar(m_ModuleName);
+            }
         }
 
-        // window callback example
-         
-        private void drawGUI()
-        {
-            //draw stuff
-        }
-         
-        // icon callback example
-         
-        private void updateIcon(Callback<Texture2D> callback, bool clicked)
-        {
-            //return your icon
-            callback.Invoke(anIcon);
-        }
-                  
         #endregion
 
         #region Reflection Method Discovery Definitions
 
-        // Arguments for TaskBar.Hook(Callback function, Callback<Callback<Texture2D>, bool>)
-        private static Type[] args = { typeof(Callback), typeof(Callback<Callback<Texture2D>, bool>) };
+        // Arguments for TaskBar.Hook(Callback function, Callback<Callback<Texture>, bool>)
+        private static Type[] args = { typeof(Callback<bool>), typeof(Callback<Callback<Texture>, bool>), typeof(string) };
         
         // Arguments for Taskbar.Unhook(Callback function)
-        private static Type[] uargs = { typeof(Callback) };
+        private static Type[] uargs = { typeof(string) };
         
         #endregion
+
+        private static bool isHooked = false;
 
         #region TaskBar Discovery and Hooking
 
@@ -98,10 +91,13 @@ namespace PluginTaskbar
         }
 
         // Hooks your callback to the TaskBar
-        public static bool HookToTaskbar(Callback function, Callback<Callback<Texture2D>, bool> callback)
+        public static bool HookToTaskbar(Callback<bool> function, Callback<Callback<Texture>, bool> callback, string moduleName)
         {
             if (!TaskbarLoaded())
                 return false;
+
+            if (isHooked)
+                return true;
 
             GameObject go = GameObject.Find("PluginTaskbarImmortal");
 
@@ -109,20 +105,37 @@ namespace PluginTaskbar
 
             Type t = o.GetType();
 
+            
             MethodInfo m = t.GetMethod("Hook", args);
-
-            if (m != null)
+            
+            if (m != null && o != null)
             {
-                m.Invoke(o, new object[] { function, callback });
+                if ((bool)m.Invoke(o, new object[] { function, callback, moduleName }))
+                {
+                    Debug.Log("HOOKTOTASKBAR TRUE");
+                    isHooked = true;
+                    return true;
+                }
             }
-
-            return true;
+            else if (m == null)
+            {
+                Debug.Log("HOOKTOTASKBAR FALSE MethodInfo null");
+            }
+            else if (o == null)
+            {
+                Debug.Log("HOOKTOTASKBAR FALSE object null");
+            }
+            isHooked = false;
+            return false;
         }
 
         // Unhooks your callback from the TaskBar
-        public static bool UnhookFromTaskbar(Callback function)
+        public static bool UnhookFromTaskbar(string moduleName)
         {
             if (!TaskbarLoaded())
+                return false;
+
+            if (!isHooked)
                 return false;
 
             object o = GetTaskbar();
@@ -133,16 +146,25 @@ namespace PluginTaskbar
 
             if (m != null)
             {
-                m.Invoke(o, new object[] { function });
+                if ((bool)m.Invoke(o, new object[] { moduleName }))
+                {
+                    isHooked = false;
+                    return true;
+                }
             }
-
-            return true;
+            isHooked = false;
+            return false;
         }
-        
+
+        public static bool Hooked()
+        {
+            return isHooked;
+        }
+
         // Returns the current TaskBar instance
         public static object GetTaskbar()
         {
-            return GameObject.Find("PluginTaskbarImmortal").GetComponent("TaskBar");
+            return (object)GameObject.Find("PluginTaskbarImmortal").GetComponent("TaskBar");
         }
 
         #endregion

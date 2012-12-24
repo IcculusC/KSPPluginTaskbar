@@ -8,14 +8,15 @@ namespace PluginTaskbar
 {
     public class TaskBarDelegate
     {
-        private Callback m_Function;
-        private Callback<Callback<Texture2D>, bool> m_Icon;
-        
-        public Texture2D Icon;
+        private Callback<bool> m_Function;
+        private Callback<Callback<Texture>, bool> m_Icon;
+        private string m_ModuleName = "";
 
-        private bool m_Minimized = true;
+        public Texture Icon;
 
-        public Callback Delegate
+        private bool m_Minimized = false;
+
+        public Callback<bool> Delegate
         {
             get
             {
@@ -35,39 +36,36 @@ namespace PluginTaskbar
             }
         }
 
-        public TaskBarDelegate(Callback function, Callback<Callback<Texture2D>, bool> taskBarIcon)//TaskBarIcon icon, Callback<Callback<Texture2D>> taskBarIcon)
+        public string moduleName
+        {
+            get { return m_ModuleName; }
+        }
+
+        public TaskBarDelegate(Callback<bool> function, Callback<Callback<Texture>, bool> taskBarIcon, string moduleName)//TaskBarIcon icon, Callback<Callback<Texture>> taskBarIcon)
         {   
             m_Function = function;
             m_Icon = taskBarIcon;
-            m_Icon.Invoke(new Callback<Texture2D>(updateIcon), m_Minimized);
+            m_Icon.Invoke(new Callback<Texture>(updateIcon), m_Minimized);
         }
 
         public void UpdateIcon()
         {
-            m_Icon.Invoke(new Callback<Texture2D>(updateIcon), m_Minimized);
+            m_Icon.Invoke(new Callback<Texture>(updateIcon), m_Minimized);
         }
 
-        private void updateIcon(Texture2D texture)
+        public void ClickEvent(bool leftClick)
+        {
+            m_Function.Invoke(leftClick);
+        }
+
+        private void updateIcon(Texture texture)
         {
             Icon = texture;
         }
 
-        public void Draw()
+        public bool Draw()
         {
-            if (!m_Minimized)
-                m_Function.Invoke();
-        }
-    }
-
-    public class TaskBarIcon
-    {
-        public Texture2D IconOff;// = new Texture2D(30, 30, TextureFormat.ARGB32, false);
-        public Texture2D IconOn;// = new Texture2D(30, 30, TextureFormat.ARGB32, false);
-
-        public TaskBarIcon(Texture2D on, Texture2D off)
-        {
-            IconOn = on;
-            IconOff = off;
+            return false;
         }
     }
 }
