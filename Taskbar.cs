@@ -1,4 +1,24 @@
-﻿using System;
+﻿/*
+    KSP Plugin Taskbar
+  
+    Copyright (C) 2012  Leath Cooper
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+*/
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -39,13 +59,13 @@ namespace PluginTaskbar
             MAXIMIZE
         }
 
-        public void Awake()
-        {
-            WWW msIconOnImg = new WWW("file://" + kspDir + "Parts/SwingToolbar/maximized.png");
-            msIconOnImg.LoadImageIntoTexture(buttonImage[0]);
-            msIconOnImg = new WWW("file://" + kspDir + "Parts/SwingToolbar/minimized.png");
-            msIconOnImg.LoadImageIntoTexture(buttonImage[1]);
-        }
+        //public void Awake()
+        //{
+        //    WWW msIconOnImg = new WWW("file://" + kspDir + "Parts/SwingToolbar/maximized.png");
+        //    msIconOnImg.LoadImageIntoTexture(buttonImage[0]);
+        //    msIconOnImg = new WWW("file://" + kspDir + "Parts/SwingToolbar/minimized.png");
+        //    msIconOnImg.LoadImageIntoTexture(buttonImage[1]);
+        //}
 
         public void Update()
         {
@@ -79,7 +99,7 @@ namespace PluginTaskbar
             if (!HighLogic.LoadedSceneIsFlight || !FlightGlobals.ready || !showGUI)
                 return;
                         
-            GUI.skin = AssetBase.GetGUISkin("KSP window 5");
+            GUI.skin = AssetBase.GetGUISkin("KSP Window 2");
 
             GUI.skin.label.normal.textColor = Color.white;
             GUI.skin.label.padding = GUI.skin.button.padding;
@@ -173,14 +193,14 @@ namespace PluginTaskbar
             {
                 if (kvp.Key.Equals(moduleName))
                 {
-                    Debug.Log(String.Format("HOOKMODULE FALSE moduleName already in Dictionary: {0}", moduleName));
+                    //Debug.Log(String.Format("HOOKMODULE FALSE moduleName already in Dictionary: {0}", moduleName));
                     return false;
                 }
             }
 
             showGUI = true;
             m_Delegates.Add(moduleName, hook);
-            Debug.Log("HOOKMODULE TRUE");
+            //Debug.Log("HOOKMODULE TRUE");
             return true;
         }
 
@@ -205,16 +225,16 @@ namespace PluginTaskbar
 
                 if(m_Delegates.Remove(module))
                 {
-                    Debug.Log("UNHOOK TRUE");
+                    //Debug.Log("UNHOOK TRUE");
                     return true;
                 }
                 else
                 {
-                    Debug.Log(String.Format("UNHOOK FALSE module not found in Dictionary: {0}", module));
+                    //Debug.Log(String.Format("UNHOOK FALSE module not found in Dictionary: {0}", module));
                     return false;
                 }
             }
-            Debug.Log("UNHOOK FALSE delegate count is 0");
+            //Debug.Log("UNHOOK FALSE delegate count is 0");
             return false;
         }
     }

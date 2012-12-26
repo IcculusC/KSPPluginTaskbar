@@ -22,7 +22,7 @@ use the PluginTaskbar namespace
 		return yourIcon;
 	}
 
-	public void Clicked(bool leftClick)
+	public void TaskbarClicked(bool leftClick)
 	{
 		if(leftClick)
 			Debug.Log("LEFT CLICKED!");
@@ -32,7 +32,7 @@ use the PluginTaskbar namespace
 
 	// this isn't used yet, but go ahead and add it
 	
-	public string TooltipText()
+	public string TaskbarTooltipText()
 	{ 
 		return yourTooltipText; 
 	}

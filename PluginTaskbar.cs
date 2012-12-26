@@ -30,15 +30,15 @@ namespace PluginTaskbar
     class PluginTaskbar
     {
         // INCLUDE THIS CLASS IN YOUR PROJECT AND FOLLOW THE INSTRUCTIONS
-        // REFERENCE EXMAPLES IN THE REGION BELOW
+        // IN THE README FOR USING THE HELPER CLASS
 
         #region TaskbarHooker HELPER CLASS
 
         public interface ITaskbarModule
         {
             Texture TaskbarIcon();
-            void Clicked(bool leftClick);
-            string TooltipText();
+            void TaskbarClicked(bool leftClick);
+            string TaskbarTooltipText();
         }
 
         public class TaskbarHooker
@@ -60,7 +60,7 @@ namespace PluginTaskbar
                 m_ModuleName = moduleName;
                 m_IconUpdate = new Callback<Callback<Texture>, bool>(updateIcon);
                 if(m_Clicked == null)
-                    m_Clicked = new Callback<bool>(module.Clicked);
+                    m_Clicked = new Callback<bool>(module.TaskbarClicked);
             }
 
             private void updateIcon(Callback<Texture> callback, bool clicked)
@@ -87,10 +87,10 @@ namespace PluginTaskbar
 
         #region Reflection Method Discovery Definitions
 
-        // Arguments for TaskBar.Hook(Callback function, Callback<Callback<Texture>, bool>)
+        // Arguments for TaskBar.Hook(Callback<bool>, Callback<Callback<Texture>, bool>, string)
         private static Type[] args = { typeof(Callback<bool>), typeof(Callback<Callback<Texture>, bool>), typeof(string) };
         
-        // Arguments for Taskbar.Unhook(Callback function)
+        // Arguments for Taskbar.Unhook(string)
         private static Type[] uargs = { typeof(string) };
         
         #endregion
@@ -135,18 +135,18 @@ namespace PluginTaskbar
             {
                 if ((bool)m.Invoke(o, new object[] { function, callback, moduleName }))
                 {
-                    Debug.Log("HOOKTOTASKBAR TRUE");
+                    //Debug.Log("HOOKTOTASKBAR TRUE");
                     isHooked = true;
                     return true;
                 }
             }
             else if (m == null)
             {
-                Debug.Log("HOOKTOTASKBAR FALSE MethodInfo null");
+                //Debug.Log("HOOKTOTASKBAR FALSE MethodInfo null");
             }
             else if (o == null)
             {
-                Debug.Log("HOOKTOTASKBAR FALSE object null");
+                //Debug.Log("HOOKTOTASKBAR FALSE object null");
             }
             isHooked = false;
             return false;
