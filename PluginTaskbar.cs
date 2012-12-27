@@ -38,7 +38,8 @@ namespace PluginTaskbar
         {
             Texture TaskbarIcon();
             void TaskbarClicked(bool leftClick);
-            string TaskbarTooltipText();
+            void TaskbarHover(Vector3 mousePosition);
+            string TaskbarTooltip();
         }
 
         public class TaskbarHooker
@@ -46,6 +47,8 @@ namespace PluginTaskbar
             private ITaskbarModule m_Module;
             private Callback<Callback<Texture>, bool> m_IconUpdate;
             private Callback<bool> m_Clicked = null;
+            private Callback<Vector3> m_Hover = null;
+            private Callback<Callback<string>> m_TooltipText = null;
             private string m_ModuleName;
 
             public static bool Hooked
@@ -59,8 +62,9 @@ namespace PluginTaskbar
                 m_Module = module;
                 m_ModuleName = moduleName;
                 m_IconUpdate = new Callback<Callback<Texture>, bool>(updateIcon);
-                if(m_Clicked == null)
-                    m_Clicked = new Callback<bool>(module.TaskbarClicked);
+                m_Clicked = new Callback<bool>(module.TaskbarClicked);
+                m_Hover = new Callback<Vector3>(module.TaskbarHover);
+                m_TooltipText = new Callback<Callback<string>>(updateTooltip);
             }
 
             private void updateIcon(Callback<Texture> callback, bool clicked)
@@ -69,11 +73,16 @@ namespace PluginTaskbar
                 callback.Invoke(m_Module.TaskbarIcon());
             }
 
+            private void updateTooltip(Callback<string> tooltip)
+            {
+                tooltip.Invoke(m_Module.TaskbarTooltip());
+            }
+                        
             public bool Start()
             {
                 Debug.Log(String.Format("STARTING MODULE: {0}", m_ModuleName));
                 PluginTaskbar.UnhookFromTaskbar(m_ModuleName);
-                return PluginTaskbar.HookToTaskbar(m_Clicked, m_IconUpdate, m_ModuleName);
+                return PluginTaskbar.HookToTaskbar(m_Clicked, m_IconUpdate, m_Hover, m_TooltipText, m_ModuleName);
             }
 
             public bool Stop()
@@ -88,7 +97,7 @@ namespace PluginTaskbar
         #region Reflection Method Discovery Definitions
 
         // Arguments for TaskBar.Hook(Callback<bool>, Callback<Callback<Texture>, bool>, string)
-        private static Type[] args = { typeof(Callback<bool>), typeof(Callback<Callback<Texture>, bool>), typeof(string) };
+        private static Type[] args = { typeof(Callback<bool>), typeof(Callback<Callback<Texture>, bool>), typeof(Callback<Vector3>), typeof(Callback<Callback<string>>), typeof(string) };
         
         // Arguments for Taskbar.Unhook(string)
         private static Type[] uargs = { typeof(string) };
@@ -114,7 +123,7 @@ namespace PluginTaskbar
         }
 
         // Hooks your callback to the TaskBar
-        public static bool HookToTaskbar(Callback<bool> function, Callback<Callback<Texture>, bool> callback, string moduleName)
+        public static bool HookToTaskbar(Callback<bool> function, Callback<Callback<Texture>, bool> callback, Callback<Vector3> hover, Callback<Callback<string>> tooltip, string moduleName)
         {
             if (!TaskbarLoaded())
                 return false;
@@ -133,7 +142,7 @@ namespace PluginTaskbar
             
             if (m != null && o != null)
             {
-                if ((bool)m.Invoke(o, new object[] { function, callback, moduleName }))
+                if ((bool)m.Invoke(o, new object[] { function, callback, hover, tooltip, moduleName }))
                 {
                     //Debug.Log("HOOKTOTASKBAR TRUE");
                     isHooked = true;

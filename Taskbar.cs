@@ -38,12 +38,21 @@ namespace PluginTaskbar
         
     public class TaskBar : MonoBehaviour
     {
+        #region Declarations
+
         private Dictionary<string, TaskBarDelegate> m_Delegates = new Dictionary<string, TaskBarDelegate>();
         private Vector2 scrollPos = new Vector2(0, 0);
         private bool showGUI = false;
 
+        private string toolTip = "";
+        private string displayTooltip = "";
+
+        private bool dragging = false;
+
         private float areaWidth = 160.0f;
         private bool minimized = false;
+
+        private float barWidth = 0;
 
         private GUIStyle scrollbarStyle = new GUIStyle();
 
@@ -51,6 +60,8 @@ namespace PluginTaskbar
 
         private Texture2D[] buttonImage = new Texture2D[2] { new Texture2D(20, 40, TextureFormat.ARGB32, true), new Texture2D(20, 40, TextureFormat.ARGB32, true) };
         private string kspDir = KSPUtil.ApplicationRootPath.Replace("\\", "/");
+
+        #endregion
 
         private enum Animation
         {
@@ -67,24 +78,31 @@ namespace PluginTaskbar
         //    msIconOnImg.LoadImageIntoTexture(buttonImage[1]);
         //}
 
+        public void Start()
+        {
+            barWidth = (float)(Screen.width / 4.75);
+            areaWidth = barWidth;
+        }
+
         public void Update()
         {
+
             if (Input.GetKeyUp("f2") && m_Delegates.Count > 0)
                 showGUI = !showGUI;
 
             if (currentAnimation == Animation.MAXIMIZE)
             {
-                scrollbarStyle = GUIStyle.none;
                 areaWidth += 30.0f;
-                if (areaWidth >= 160.0f)
+                //if (areaWidth >= 160.0f)
+                if (areaWidth >= barWidth)
                 {
-                    areaWidth = 160.0f;
+                    //areaWidth = 160.0f;
+                    areaWidth = barWidth;
                     currentAnimation = Animation.NONE;
                 }
             }
             else if (currentAnimation == Animation.MINIMIZE)
             {
-                scrollbarStyle = GUIStyle.none;
                 areaWidth -= 30.0f;
                 if (areaWidth <= 0.0f)
                 {
@@ -92,60 +110,61 @@ namespace PluginTaskbar
                     currentAnimation = Animation.NONE;
                 }
             }
+
+            displayTooltip = toolTip;
         }
 
         public void OnGUI()
         {
             if (!HighLogic.LoadedSceneIsFlight || !FlightGlobals.ready || !showGUI)
                 return;
-                        
-            GUI.skin = AssetBase.GetGUISkin("KSP Window 2");
+
+            GUI.skin = AssetBase.GetGUISkin("OrbitMapSkin");
 
             GUI.skin.label.normal.textColor = Color.white;
             GUI.skin.label.padding = GUI.skin.button.padding;
 
             GUIStyle button = new GUIStyle(GUI.skin.button);
             button.padding = new RectOffset(0, 0, 0, 0);
+            button.margin = new RectOffset(5, 5, 2, 0);
 
             GUIStyle win = new GUIStyle();
-            win.normal.background = win.hover.background = win.active.background = GUI.skin.window.normal.background;
-
-            GUILayout.BeginArea(new Rect(180, 0, 20, 40));
+            win.normal.background = win.hover.background = win.active.background = GUI.skin.scrollView.normal.background;
+            win.margin = new RectOffset(2, 2, 2, 2);
+            win.padding = new RectOffset(2, 2, 2, 2);
+                                                            
+            GUILayout.BeginArea(new Rect(125, 0, 20, 40));
             //minimized ? new GUIContent(buttonImage[1]) : new GUIContent(buttonImage[0])
-                if (GUILayout.Button("", button, GUILayout.Width(20.0f), GUILayout.Height(40.0f), GUILayout.MinWidth(20.0f), GUILayout.MaxWidth(20.0f), GUILayout.MinHeight(40.0f), GUILayout.MaxHeight(40.0f)))
+            if (GUILayout.Button("", button, GUILayout.Width(20.0f), GUILayout.Height(40.0f), GUILayout.MinWidth(20.0f), GUILayout.MaxWidth(20.0f), GUILayout.MinHeight(40.0f), GUILayout.MaxHeight(40.0f)))
+            {
+                if (Event.current.button == 0)
                 {
-                    if (Event.current.button == 0)
-                    {
-                        minimized = !minimized;
-                        if (minimized)
-                            currentAnimation = Animation.MINIMIZE;
-                        else
-                            currentAnimation = Animation.MAXIMIZE;
-                    }
+                    minimized = !minimized;
+                    if (minimized)
+                        currentAnimation = Animation.MINIMIZE;
+                    else
+                        currentAnimation = Animation.MAXIMIZE;
                 }
-                GUILayout.EndArea();
+            }
+            GUILayout.EndArea();
 
-            GUILayout.BeginArea(new Rect(200, 0, areaWidth, 40), win);
+            GUILayout.BeginArea(new Rect(145, 0, areaWidth, 40), win);
             
             if (m_Delegates.Count > 0)
             {
-                GUI.skin.scrollView.margin = new RectOffset(0, 0, 0, 0);
-                GUI.skin.scrollView.padding = new RectOffset(0, 0, 0, 0);
 
-                if (currentAnimation == Animation.NONE)
-                    scrollbarStyle = GUI.skin.horizontalScrollbar;
-                else
-                    scrollbarStyle = GUIStyle.none;
-                
-                scrollPos = GUILayout.BeginScrollView(scrollPos, false, false, scrollbarStyle, GUIStyle.none);
+                //if (currentAnimation == Animation.NONE)
+                //    scrollbarStyle = new GUIStyle(GUI.skin.horizontalScrollbar);
+                                            
+                scrollPos = GUILayout.BeginScrollView(scrollPos, false, false, new GUIStyle(), new GUIStyle());
 
                 GUILayout.BeginHorizontal();
 
                 foreach (KeyValuePair<string, TaskBarDelegate> kvp in m_Delegates)
                 {
-                    kvp.Value.UpdateIcon();
+                    //kvp.Value.UpdateIcon();
 
-                    if (GUILayout.Button(kvp.Value.Icon, button, GUILayout.MinWidth(30.0f), GUILayout.MinHeight(30.0f), GUILayout.MaxWidth(30.0f), GUILayout.MaxHeight(30.0f)))
+                    if (GUILayout.Button(new GUIContent(kvp.Value.Icon, kvp.Value.moduleName), button, GUILayout.MinWidth(30.0f), GUILayout.MinHeight(30.0f), GUILayout.MaxWidth(30.0f), GUILayout.MaxHeight(30.0f)))
                     {
                         if (Event.current.button == 0)
                         {
@@ -159,20 +178,43 @@ namespace PluginTaskbar
                 }
 
                 GUILayout.EndHorizontal();
-                GUILayout.EndScrollView();
-            }           
 
-            GUILayout.EndArea();
+                GUILayout.EndScrollView();   
+            }
+                                    
+            GUILayout.EndArea();          
 
             foreach (KeyValuePair<string, TaskBarDelegate> kvp in m_Delegates)
             {
-
+                if (kvp.Key.Equals(toolTip))
+                {
+                    kvp.Value.HoverEvent(Input.mousePosition);
+                }
             }
+
+            if (displayTooltip != null && displayTooltip != "")
+            {
+                TaskBarDelegate tbd;
+                if (m_Delegates.TryGetValue(displayTooltip, out tbd))
+                {
+                    if (tbd.TooltipText != null)
+                    {
+                        GUILayout.BeginArea(new Rect(Input.mousePosition.x, Screen.height - Input.mousePosition.y, 160, 30));
+                        GUILayout.Label(tbd.TooltipText);
+                        GUILayout.EndArea();
+                    }
+                }
+            }
+
+            if (toolTip != GUI.tooltip)
+                toolTip = GUI.tooltip;
         }
 
-        public bool Hook(Callback<bool> function, Callback<Callback<Texture>, bool> callback, string moduleName)
+        #region Icon Hooking functions
+
+        public bool Hook(Callback<bool> function, Callback<Callback<Texture>, bool> callback, Callback<Vector3> hover, Callback<Callback<string>> tooltip, string moduleName)
         {
-            TaskBarDelegate temp = new TaskBarDelegate(function, callback, moduleName);
+            TaskBarDelegate temp = new TaskBarDelegate(function, callback, hover, tooltip, moduleName);
 
             if (HookModule(temp, moduleName))
             {
@@ -237,5 +279,7 @@ namespace PluginTaskbar
             //Debug.Log("UNHOOK FALSE delegate count is 0");
             return false;
         }
+
+        #endregion
     }
 }

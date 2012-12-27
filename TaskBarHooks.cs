@@ -30,9 +30,24 @@ namespace PluginTaskbar
     {
         private Callback<bool> m_Function;
         private Callback<Callback<Texture>, bool> m_Icon;
+        private Callback<Vector3> m_Hover;
+        private Callback<Callback<string>> m_Tooltip;
         private string m_ModuleName = "";
+        private string m_TooltipText = "";
+        private Texture m_IconTexture;
 
-        public Texture Icon;
+        public Texture Icon
+        {
+            get
+            {
+                UpdateIcon();
+                return m_IconTexture;
+            }
+            set
+            {
+                m_IconTexture = value;
+            }
+        }
 
         private bool m_Minimized = false;
 
@@ -41,6 +56,15 @@ namespace PluginTaskbar
             get
             {
                 return m_Function;
+            }
+        }
+
+        public string TooltipText
+        {
+            get 
+            {
+                UpdateTooltip();
+                return m_TooltipText; 
             }
         }
 
@@ -61,12 +85,20 @@ namespace PluginTaskbar
             get { return m_ModuleName; }
         }
 
-        public TaskBarDelegate(Callback<bool> function, Callback<Callback<Texture>, bool> taskBarIcon, string moduleName)//TaskBarIcon icon, Callback<Callback<Texture>> taskBarIcon)
+        public TaskBarDelegate(Callback<bool> function, Callback<Callback<Texture>, bool> taskBarIcon, Callback<Vector3> hover, Callback<Callback<string>> tooltip, string moduleName)//TaskBarIcon icon, Callback<Callback<Texture>> taskBarIcon)
         {
             m_ModuleName = moduleName;
             m_Function = function;
             m_Icon = taskBarIcon;
+            m_Hover = hover;
+            m_Tooltip = tooltip;
             m_Icon.Invoke(new Callback<Texture>(updateIcon), m_Minimized);
+            m_Tooltip.Invoke(new Callback<string>(updateTooltip));
+        }
+
+        public void UpdateTooltip()
+        {
+            m_Tooltip.Invoke(new Callback<string>(updateTooltip));
         }
 
         public void UpdateIcon()
@@ -79,14 +111,20 @@ namespace PluginTaskbar
             m_Function.Invoke(leftClick);
         }
 
+        public void HoverEvent(Vector3 mousePosition)
+        {
+            
+            m_Hover.Invoke(mousePosition);
+        }
+
+        private void updateTooltip(string tooltip)
+        {
+            m_TooltipText = tooltip;
+        }
+
         private void updateIcon(Texture texture)
         {
             Icon = texture;
-        }
-
-        public bool Draw()
-        {
-            return false;
         }
     }
 }
