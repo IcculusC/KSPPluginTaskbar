@@ -47,6 +47,8 @@ namespace PluginTaskbar
         private string toolTip = "";
         private string displayTooltip = "";
 
+        private Rect[] iconRect;
+
         private bool dragging = false;
 
         private float areaWidth = 160.0f;
@@ -119,7 +121,9 @@ namespace PluginTaskbar
         {
             if (!HighLogic.LoadedSceneIsFlight || !FlightGlobals.ready || !showGUI)
                 return;
-            
+
+            iconRect = new Rect[m_Delegates.Count];
+
             GUI.skin = AssetBase.GetGUISkin("OrbitMapSkin");
             
             GUIStyle button = new GUIStyle(GUI.skin.button);
@@ -175,8 +179,10 @@ namespace PluginTaskbar
 
                     GUILayout.BeginHorizontal();
 
-                    foreach (KeyValuePair<string, TaskBarDelegate> kvp in m_Delegates)
+                    for (int i = 0; i < m_Delegates.Count; i++)
                     {
+                        KeyValuePair<string, TaskBarDelegate> kvp = m_Delegates.ElementAt(i);
+
                         if (GUILayout.Button(new GUIContent(kvp.Value.Icon, kvp.Value.moduleName), button, GUILayout.MinWidth(30.0f), GUILayout.MinHeight(30.0f), GUILayout.MaxWidth(30.0f), GUILayout.MaxHeight(30.0f)))
                         {
                             if (Event.current.button == 0)
@@ -188,6 +194,8 @@ namespace PluginTaskbar
                                 kvp.Value.ClickEvent(false);
                             }
                         }
+
+                        iconRect[i] = GUILayoutUtility.GetLastRect();
                     }
 
                     if (Event.current.button == 0 && Event.current.type == EventType.mouseDown && new Rect(145, 0, areaWidth, 40).Contains(new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y)))
@@ -207,6 +215,13 @@ namespace PluginTaskbar
                 }
 
                 GUILayout.EndArea();
+
+                for (int i = 0; i < m_Delegates.Count; i++)
+                {
+                    KeyValuePair<string, TaskBarDelegate> kvp = m_Delegates.ElementAt(i);
+
+                    kvp.Value.Draw(iconRect[i], true);
+                }
             }
 
             foreach (KeyValuePair<string, TaskBarDelegate> kvp in m_Delegates)
@@ -238,9 +253,9 @@ namespace PluginTaskbar
 
         #region Icon Hooking functions
 
-        public bool Hook(Callback<bool> function, Callback<Callback<Texture>, bool> callback, Callback<Vector3> hover, Callback<Callback<string>> tooltip, string moduleName)
+        public bool Hook(Callback<bool> function, Callback<Callback<Texture>, bool> callback, Callback<Vector3> hover, Callback<Rect, bool> draw, Callback<Callback<string>> tooltip, string moduleName)
         {
-            TaskBarDelegate temp = new TaskBarDelegate(function, callback, hover, tooltip, moduleName);
+            TaskBarDelegate temp = new TaskBarDelegate(function, callback, hover, draw, tooltip, moduleName);
 
             if (HookModule(temp, moduleName))
             {

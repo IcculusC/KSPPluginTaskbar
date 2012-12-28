@@ -48,6 +48,14 @@
 	}
 
 
+	// place any draw calls here, these will be invoked after the taskbar is drawn
+	public void TaskbarDraw(Rect buttonRect, bool visible)
+	{
+		
+		// MUST HAVE RETURN STATEMENT
+		return;
+	}
+
 
 // define a few things
 

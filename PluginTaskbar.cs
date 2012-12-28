@@ -40,6 +40,7 @@ namespace PluginTaskbar
             void TaskbarClicked(bool leftClick);
             void TaskbarHover(Vector3 mousePosition);
             string TaskbarTooltip();
+            void TaskbarDraw(Rect buttonRect, bool visible);
         }
 
         public class TaskbarHooker
@@ -49,6 +50,7 @@ namespace PluginTaskbar
             private Callback<bool> m_Clicked = null;
             private Callback<Vector3> m_Hover = null;
             private Callback<Callback<string>> m_TooltipText = null;
+            private Callback<Rect, bool> m_Draw = null;
             private string m_ModuleName;
 
             public static bool Hooked
@@ -65,6 +67,7 @@ namespace PluginTaskbar
                 m_Clicked = new Callback<bool>(module.TaskbarClicked);
                 m_Hover = new Callback<Vector3>(module.TaskbarHover);
                 m_TooltipText = new Callback<Callback<string>>(updateTooltip);
+                m_Draw = new Callback<Rect, bool>(module.TaskbarDraw);
             }
 
             private void updateIcon(Callback<Texture> callback, bool clicked)
@@ -82,7 +85,7 @@ namespace PluginTaskbar
             {
                 Debug.Log(String.Format("STARTING MODULE: {0}", m_ModuleName));
                 PluginTaskbar.UnhookFromTaskbar(m_ModuleName);
-                return PluginTaskbar.HookToTaskbar(m_Clicked, m_IconUpdate, m_Hover, m_TooltipText, m_ModuleName);
+                return PluginTaskbar.HookToTaskbar(m_Clicked, m_IconUpdate, m_Hover, m_Draw, m_TooltipText, m_ModuleName);
             }
 
             public bool Stop()
@@ -97,7 +100,7 @@ namespace PluginTaskbar
         #region Reflection Method Discovery Definitions
 
         // Arguments for TaskBar.Hook(Callback<bool>, Callback<Callback<Texture>, bool>, string)
-        private static Type[] args = { typeof(Callback<bool>), typeof(Callback<Callback<Texture>, bool>), typeof(Callback<Vector3>), typeof(Callback<Callback<string>>), typeof(string) };
+        private static Type[] args = { typeof(Callback<bool>), typeof(Callback<Callback<Texture>, bool>), typeof(Callback<Vector3>), typeof(Callback<Rect, bool>), typeof(Callback<Callback<string>>), typeof(string) };
         
         // Arguments for Taskbar.Unhook(string)
         private static Type[] uargs = { typeof(string) };
@@ -123,7 +126,7 @@ namespace PluginTaskbar
         }
 
         // Hooks your callback to the TaskBar
-        public static bool HookToTaskbar(Callback<bool> function, Callback<Callback<Texture>, bool> callback, Callback<Vector3> hover, Callback<Callback<string>> tooltip, string moduleName)
+        public static bool HookToTaskbar(Callback<bool> function, Callback<Callback<Texture>, bool> callback, Callback<Vector3> hover, Callback<Rect, bool> draw, Callback<Callback<string>> tooltip, string moduleName)
         {
             if (!TaskbarLoaded())
                 return false;
@@ -142,7 +145,7 @@ namespace PluginTaskbar
             
             if (m != null && o != null)
             {
-                if ((bool)m.Invoke(o, new object[] { function, callback, hover, tooltip, moduleName }))
+                if ((bool)m.Invoke(o, new object[] { function, callback, hover, draw, tooltip, moduleName }))
                 {
                     //Debug.Log("HOOKTOTASKBAR TRUE");
                     isHooked = true;
