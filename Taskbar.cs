@@ -86,19 +86,17 @@ namespace PluginTaskbar
 
         public void Update()
         {
-
             if (Input.GetKeyUp("f2") && m_Delegates.Count > 0)
                 showGUI = !showGUI;
 
             if (currentAnimation == Animation.MAXIMIZE)
             {
                 areaWidth += 30.0f;
-                //if (areaWidth >= 160.0f)
                 if (areaWidth >= barWidth)
                 {
-                    //areaWidth = 160.0f;
                     areaWidth = barWidth;
                     currentAnimation = Animation.NONE;
+                    minimized = false;
                 }
             }
             else if (currentAnimation == Animation.MINIMIZE)
@@ -108,6 +106,7 @@ namespace PluginTaskbar
                 {
                     areaWidth = 0.0f;
                     currentAnimation = Animation.NONE;
+                    minimized = true;
                 }
             }
 
@@ -119,70 +118,94 @@ namespace PluginTaskbar
             if (!HighLogic.LoadedSceneIsFlight || !FlightGlobals.ready || !showGUI)
                 return;
 
-            GUI.skin = AssetBase.GetGUISkin("OrbitMapSkin");
+
+            GUI.skin = HighLogic.Skin;
+            //GUI.skin = AssetBase.GetGUISkin("OrbitMapSkin");
 
             GUI.skin.label.normal.textColor = Color.white;
             GUI.skin.label.padding = GUI.skin.button.padding;
 
             GUIStyle button = new GUIStyle(GUI.skin.button);
             button.padding = new RectOffset(0, 0, 0, 0);
-            button.margin = new RectOffset(5, 5, 2, 0);
-
+            
             GUIStyle win = new GUIStyle();
             win.normal.background = win.hover.background = win.active.background = GUI.skin.scrollView.normal.background;
-            win.margin = new RectOffset(2, 2, 2, 2);
-            win.padding = new RectOffset(2, 2, 2, 2);
-                                                            
+
+            
+            GUI.skin.customStyles = new GUIStyle[3];
+            for (int i = 0; i < 3; i++)
+            {
+                GUI.skin.customStyles[i] = new GUIStyle();
+                switch (i)
+                {
+                    case 0:
+                        GUI.skin.customStyles[i].name = "upbutton";
+                        break;
+                    case 1:
+                        GUI.skin.customStyles[i].name = "upbutton";
+                        break;
+                    case 2:
+                        GUI.skin.customStyles[i].name = "thumb";
+                        break;
+                }
+            }
+            
+
             GUILayout.BeginArea(new Rect(125, 0, 20, 40));
-            //minimized ? new GUIContent(buttonImage[1]) : new GUIContent(buttonImage[0])
+            
             if (GUILayout.Button("", button, GUILayout.Width(20.0f), GUILayout.Height(40.0f), GUILayout.MinWidth(20.0f), GUILayout.MaxWidth(20.0f), GUILayout.MinHeight(40.0f), GUILayout.MaxHeight(40.0f)))
             {
                 if (Event.current.button == 0)
                 {
-                    minimized = !minimized;
-                    if (minimized)
+                    //minimized = !minimized;
+                    if (!minimized)
                         currentAnimation = Animation.MINIMIZE;
                     else
-                        currentAnimation = Animation.MAXIMIZE;
-                }
-            }
-            GUILayout.EndArea();
-
-            GUILayout.BeginArea(new Rect(145, 0, areaWidth, 40), win);
-            
-            if (m_Delegates.Count > 0)
-            {
-
-                //if (currentAnimation == Animation.NONE)
-                //    scrollbarStyle = new GUIStyle(GUI.skin.horizontalScrollbar);
-                                            
-                scrollPos = GUILayout.BeginScrollView(scrollPos, false, false, new GUIStyle(), new GUIStyle());
-
-                GUILayout.BeginHorizontal();
-
-                foreach (KeyValuePair<string, TaskBarDelegate> kvp in m_Delegates)
-                {
-                    //kvp.Value.UpdateIcon();
-
-                    if (GUILayout.Button(new GUIContent(kvp.Value.Icon, kvp.Value.moduleName), button, GUILayout.MinWidth(30.0f), GUILayout.MinHeight(30.0f), GUILayout.MaxWidth(30.0f), GUILayout.MaxHeight(30.0f)))
                     {
-                        if (Event.current.button == 0)
-                        {
-                            kvp.Value.ClickEvent(true);
-                        }
-                        else if (Event.current.button == 1)
-                        {
-                            kvp.Value.ClickEvent(false);
-                        }
+                        minimized = false;
+                        currentAnimation = Animation.MAXIMIZE;
                     }
                 }
 
-                GUILayout.EndHorizontal();
+                Debug.Log(SystemInfo.graphicsMemorySize);
+                Debug.Log(SystemInfo.systemMemorySize);
 
-                GUILayout.EndScrollView();   
             }
-                                    
-            GUILayout.EndArea();          
+
+            GUILayout.EndArea();
+
+            if (!minimized && areaWidth > 0)
+            {
+                GUILayout.BeginArea(new Rect(145, 0, areaWidth, 40), win);
+
+                if (m_Delegates.Count > 0)
+                {
+                    scrollPos = GUILayout.BeginScrollView(scrollPos, false, false, new GUIStyle(), new GUIStyle());
+
+                    GUILayout.BeginHorizontal();
+
+                    foreach (KeyValuePair<string, TaskBarDelegate> kvp in m_Delegates)
+                    {
+                        if (GUILayout.Button(new GUIContent(kvp.Value.Icon, kvp.Value.moduleName), button, GUILayout.MinWidth(30.0f), GUILayout.MinHeight(30.0f), GUILayout.MaxWidth(30.0f), GUILayout.MaxHeight(30.0f)))
+                        {
+                            if (Event.current.button == 0)
+                            {
+                                kvp.Value.ClickEvent(true);
+                            }
+                            else if (Event.current.button == 1)
+                            {
+                                kvp.Value.ClickEvent(false);
+                            }
+                        }
+                    }
+
+                    GUILayout.EndHorizontal();
+
+                    GUILayout.EndScrollView();
+                }
+
+                GUILayout.EndArea();
+            }
 
             foreach (KeyValuePair<string, TaskBarDelegate> kvp in m_Delegates)
             {
@@ -208,6 +231,7 @@ namespace PluginTaskbar
 
             if (toolTip != GUI.tooltip)
                 toolTip = GUI.tooltip;
+
         }
 
         #region Icon Hooking functions
@@ -253,18 +277,6 @@ namespace PluginTaskbar
 
             if(m_Delegates.Count > 0)
             {
-                //foreach (KeyValuePair<string, TaskBarDelegate> kvp in m_Delegates)
-                //{
-                //    if (kvp.Key.Equals(module))
-                //    {
-                //        m_Delegates.Remove(kvp.Key);
-
-                //        Debug.Log("UNHOOK TRUE");
-                //        return true;
-                //    }
-                //
-                //}
-
                 if(m_Delegates.Remove(module))
                 {
                     //Debug.Log("UNHOOK TRUE");
