@@ -81,6 +81,8 @@ namespace PluginTaskbar
         public void Start()
         {
             barWidth = (float)(Screen.width / 4.75);
+            int temp = Mathf.RoundToInt((float)(barWidth / 42));
+            barWidth = (float)(temp * 42);
             areaWidth = barWidth;
         }
 
@@ -117,39 +119,32 @@ namespace PluginTaskbar
         {
             if (!HighLogic.LoadedSceneIsFlight || !FlightGlobals.ready || !showGUI)
                 return;
-
-
-            GUI.skin = HighLogic.Skin;
-            //GUI.skin = AssetBase.GetGUISkin("OrbitMapSkin");
-
-            GUI.skin.label.normal.textColor = Color.white;
-            GUI.skin.label.padding = GUI.skin.button.padding;
-
+            
+            GUI.skin = AssetBase.GetGUISkin("OrbitMapSkin");
+            
             GUIStyle button = new GUIStyle(GUI.skin.button);
             button.padding = new RectOffset(0, 0, 0, 0);
-            
+                        
             GUIStyle win = new GUIStyle();
             win.normal.background = win.hover.background = win.active.background = GUI.skin.scrollView.normal.background;
+            win.margin = new RectOffset(0, 0, 0, 0);
+            win.padding = new RectOffset(0, 0, 0, 0);
 
-            
+            GUIStyle hScrollbarStyle = new GUIStyle(GUI.skin.horizontalScrollbar);
+            GUIStyle vScrollbarStyle = new GUIStyle(GUI.skin.verticalScrollbar);
+
+            hScrollbarStyle.fixedWidth = hScrollbarStyle.fixedHeight = 0;
+            vScrollbarStyle.fixedWidth = vScrollbarStyle.fixedHeight = 0;
+
+            /*
             GUI.skin.customStyles = new GUIStyle[3];
-            for (int i = 0; i < 3; i++)
-            {
-                GUI.skin.customStyles[i] = new GUIStyle();
-                switch (i)
-                {
-                    case 0:
-                        GUI.skin.customStyles[i].name = "upbutton";
-                        break;
-                    case 1:
-                        GUI.skin.customStyles[i].name = "upbutton";
-                        break;
-                    case 2:
-                        GUI.skin.customStyles[i].name = "thumb";
-                        break;
-                }
-            }
-            
+            GUI.skin.customStyles[0] = new GUIStyle();
+            GUI.skin.customStyles[0].name = "upbutton";
+            GUI.skin.customStyles[1] = new GUIStyle();
+            GUI.skin.customStyles[1].name = "upbutton";
+            GUI.skin.customStyles[2] = new GUIStyle();
+            GUI.skin.customStyles[2].name = "thumb";
+            */
 
             GUILayout.BeginArea(new Rect(125, 0, 20, 40));
             
@@ -166,10 +161,6 @@ namespace PluginTaskbar
                         currentAnimation = Animation.MAXIMIZE;
                     }
                 }
-
-                Debug.Log(SystemInfo.graphicsMemorySize);
-                Debug.Log(SystemInfo.systemMemorySize);
-
             }
 
             GUILayout.EndArea();
@@ -180,7 +171,7 @@ namespace PluginTaskbar
 
                 if (m_Delegates.Count > 0)
                 {
-                    scrollPos = GUILayout.BeginScrollView(scrollPos, false, false, new GUIStyle(), new GUIStyle());
+                    scrollPos = GUILayout.BeginScrollView(scrollPos, false, false, hScrollbarStyle, vScrollbarStyle);
 
                     GUILayout.BeginHorizontal();
 
@@ -197,6 +188,17 @@ namespace PluginTaskbar
                                 kvp.Value.ClickEvent(false);
                             }
                         }
+                    }
+
+                    if (Event.current.button == 0 && Event.current.type == EventType.mouseDown && new Rect(145, 0, areaWidth, 40).Contains(new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y)))
+                    {
+                        if (Input.mousePosition.x > (145 + (areaWidth / 2)))
+                        {
+                            scrollPos = new Vector2(scrollPos.x + 33, scrollPos.y);
+                        }
+                        else if(Input.mousePosition.x < (145 + (areaWidth / 2)))
+                            scrollPos = new Vector2(scrollPos.x - 33, scrollPos.y);
+
                     }
 
                     GUILayout.EndHorizontal();
