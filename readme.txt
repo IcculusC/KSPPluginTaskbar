@@ -78,8 +78,4 @@
 // so you can handle things alternatively if it fails
 
 	// returns true if taskbar is installed and successfully unhooked
-	taskbarHook.Start();
-
-
-
-// Enjoy!
+	taskbarHook.Stop();
